@@ -208,8 +208,15 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const response = await fetch(API_SOLICITUDES_URL, { headers: { 'Accept': 'application/json' } });
       if (!response.ok) throw new Error('Error al cargar solicitudes');
-      const solicitudes = await response.json();
-      renderSolicitudes(solicitudes);
+      
+      const resultado = await response.json();
+      
+      // Validamos si la API devolvió success: true y extraemos el array de "data"
+      if (resultado.success && Array.isArray(resultado.data)) {
+        renderSolicitudes(resultado.data);
+      } else {
+        renderSolicitudes([]);
+      }
     } catch (error) {
       console.error(error);
       tablaSolicitudesBody.innerHTML = `<tr><td colspan="5" class="empty-state" style="color: red;">Error al conectar con API de Solicitudes.</td></tr>`;
@@ -257,18 +264,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     solicitudes.forEach(s => {
-      const nombreCliente = s.cliente ? s.cliente.nombre : s.id_cliente;
-      const nombreTipo = s.tipo_financiamiento ? s.tipo_financiamiento.nombre : s.idtipo_financiamiento;
+      // Extraemos los datos de las relaciones que vienen anidadas en el JSON
+      const nombreCliente = s.cliente ? s.cliente.nombre_cliente : s.id_cliente;
+      const nombreTipo = s.tipofinanciamiento ? s.tipofinanciamiento.tipo_financiamiento : s.idtipo_financiamiento;
+      
+      // Limpiamos la fecha si viene con hora (ej: "2026-10-23 12:40:10" -> "2026-10-23")
+      const fechaLimpia = s.fecha_solicitud ? s.fecha_solicitud.split(' ')[0] : '';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${nombreCliente}</td>
         <td>${nombreTipo}</td>
         <td>$${Number(s.monto).toLocaleString()}</td>
-        <td>${s.fecha_solicitud}</td>
+        <td>${fechaLimpia}</td>
         <td>
-          <button class="btn-action edit" onclick="editarSolicitud('${s.id}', '${s.id_cliente}', '${s.idtipo_financiamiento}', '${s.monto}', '${s.fecha_solicitud}')">Editar</button>
-          <button class="btn-action delete" onclick="eliminarSolicitud('${s.id}')">Eliminar</button>
+          <button class="btn-action delete" onclick="eliminarSolicitud('${s.idsolicitud}')">Eliminar</button>
         </td>
       `;
       tablaSolicitudesBody.appendChild(tr);
