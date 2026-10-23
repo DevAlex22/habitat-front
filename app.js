@@ -15,7 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- CRUD CLIENTES CON API LARAVEL ---
   
-  const API_URL = 'http://127.0.0.1:8000/api/cliente';
+  const API_SOLICITUDES_URL = 'http://127.0.0.1:8000/api/solicitud';
+  const API_CLIENTES_URL = 'http://127.0.0.1:8000/api/cliente';
+  const API_TIPOS_FINANCIAMIENTO_URL = 'http://127.0.0.1:8000/api/tipo-financiamiento';
 
   const formCliente = document.getElementById('form-cliente');
   const btnLimpiar = document.getElementById('btn-limpiar');
@@ -34,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. OBTENER (GET) - Listar clientes desde Laravel
   async function cargarClientes() {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_CLIENTES_URL, {
         headers: {
           'Accept': 'application/json'
         }
@@ -63,12 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      let url = API_URL;
+      let url = API_CLIENTES_URL;
       let method = 'POST';
 
       // Si hay ID, es una actualización (PUT)
       if (id !== '') {
-        url = `${API_URL}/${id}`;
+        url = `${API_CLIENTES_URL}/${id}`;
         method = 'PUT';
       }
 
@@ -125,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('¿Deseas eliminar este cliente?')) return;
 
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${API_CLIENTES_URL}/${id}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json'
@@ -153,6 +155,150 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' }); // Sube la pantalla al formulario
   };
 
-  // Carga inicial al abrir la página
+  const formSolicitud = document.getElementById('form-solicitud');
+  const btnLimpiarSolicitud = document.getElementById('btn-limpiar-solicitud');
+  const tablaSolicitudesBody = document.getElementById('tabla-solicitudes-body');
+  const formSolicitudTitle = document.getElementById('form-solicitud-title');
+  const inputFecha = document.getElementById('fecha_solicitud');
+
+  // Fecha actual automática
+  function setFechaActual() {
+    inputFecha.value = new Date().toISOString().split('T')[0];
+  }
+  setFechaActual();
+
+  async function cargarCombosClientes() {
+    try {
+      const res = await fetch(API_CLIENTES_URL, { headers: { 'Accept': 'application/json' } });
+      const clientes = await res.json();
+      const selectCliente = document.getElementById('select-cliente');
+      selectCliente.innerHTML = '<option value="">Seleccione un cliente...</option>';
+      clientes.forEach(c => {
+        selectCliente.innerHTML += `<option value="${c.idcliente}">${c.nombre_cliente} (${c.edad_cliente})</option>`;
+      });
+    } catch (error) {
+      console.error('Error al cargar combo clientes:', error);
+    }
+  }
+
+  async function cargarCombosTipos() {
+    try {
+      const res = await fetch(API_TIPOS_FINANCIAMIENTO_URL, { headers: { 'Accept': 'application/json' } });
+      const tipos = await res.json();
+      const selectTipo = document.getElementById('select-tipo-financiamiento');
+      selectTipo.innerHTML = '<option value="">Seleccione un tipo...</option>';
+      tipos.forEach(t => {
+        selectTipo.innerHTML += `<option value="${t.idtipo_financiamiento}">${t.tipo_financiamiento || t.descripcion}</option>`;
+      });
+    } catch (error) {
+      console.error('Error al cargar tipos de financiamiento:', error);
+    }
+  }
+
+  function limpiarFormularioSolicitud() {
+    formSolicitud.reset();
+    document.getElementById('solicitud-id').value = '';
+    formSolicitudTitle.textContent = 'Guardar / Editar Solicitud';
+    setFechaActual();
+  }
+
+  btnLimpiarSolicitud.addEventListener('click', limpiarFormularioSolicitud);
+
+  async function cargarSolicitudes() {
+    try {
+      const response = await fetch(API_SOLICITUDES_URL, { headers: { 'Accept': 'application/json' } });
+      if (!response.ok) throw new Error('Error al cargar solicitudes');
+      const solicitudes = await response.json();
+      renderSolicitudes(solicitudes);
+    } catch (error) {
+      console.error(error);
+      tablaSolicitudesBody.innerHTML = `<tr><td colspan="5" class="empty-state" style="color: red;">Error al conectar con API de Solicitudes.</td></tr>`;
+    }
+  }
+
+  formSolicitud.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('solicitud-id').value;
+    const dataSolicitud = {
+      id_cliente: document.getElementById('select-cliente').value,
+      idtipo_financiamiento: document.getElementById('select-tipo-financiamiento').value,
+      monto: document.getElementById('monto').value,
+      fecha_solicitud: inputFecha.value
+    };
+
+    try {
+      const url = id !== '' ? `${API_SOLICITUDES_URL}/${id}` : API_SOLICITUDES_URL;
+      const method = id !== '' ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(dataSolicitud)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert('Error: ' + (errorData.message || JSON.stringify(errorData.errors)));
+        return;
+      }
+
+      limpiarFormularioSolicitud();
+      cargarSolicitudes();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  });
+
+  function renderSolicitudes(solicitudes) {
+    tablaSolicitudesBody.innerHTML = '';
+    if (!solicitudes || solicitudes.length === 0) {
+      tablaSolicitudesBody.innerHTML = `<tr><td colspan="5" class="empty-state">No hay solicitudes registradas.</td></tr>`;
+      return;
+    }
+
+    solicitudes.forEach(s => {
+      const nombreCliente = s.cliente ? s.cliente.nombre : s.id_cliente;
+      const nombreTipo = s.tipo_financiamiento ? s.tipo_financiamiento.nombre : s.idtipo_financiamiento;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${nombreCliente}</td>
+        <td>${nombreTipo}</td>
+        <td>$${Number(s.monto).toLocaleString()}</td>
+        <td>${s.fecha_solicitud}</td>
+        <td>
+          <button class="btn-action edit" onclick="editarSolicitud('${s.id}', '${s.id_cliente}', '${s.idtipo_financiamiento}', '${s.monto}', '${s.fecha_solicitud}')">Editar</button>
+          <button class="btn-action delete" onclick="eliminarSolicitud('${s.id}')">Eliminar</button>
+        </td>
+      `;
+      tablaSolicitudesBody.appendChild(tr);
+    });
+  }
+
+  window.editarSolicitud = function(id, id_cliente, idtipo_financiamiento, monto, fecha_solicitud) {
+    document.getElementById('solicitud-id').value = id;
+    document.getElementById('select-cliente').value = id_cliente;
+    document.getElementById('select-tipo-financiamiento').value = idtipo_financiamiento;
+    document.getElementById('monto').value = monto;
+    document.getElementById('fecha_solicitud').value = fecha_solicitud;
+    formSolicitudTitle.textContent = 'Modificando Solicitud...';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.eliminarSolicitud = async function(id) {
+    if (!confirm('¿Deseas eliminar esta solicitud?')) return;
+    try {
+      await fetch(`${API_SOLICITUDES_URL}/${id}`, { method: 'DELETE', headers: { 'Accept': 'application/json' } });
+      cargarSolicitudes();
+      limpiarFormularioSolicitud();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // --- CARGA INICIAL DE AMBOS MÓDULOS ---
   cargarClientes();
+  cargarCombosClientes();
+  cargarCombosTipos();
+  cargarSolicitudes();
 });

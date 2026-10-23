@@ -98,10 +98,71 @@
     
     <!--================================  SECCION DE CLIENTES -================================ -->
 
+    <!--================================  SECCION DE CLIENTES -================================ -->
+
     <section id="solicitudes" class="content-section">
       <h2>Módulo de Solicitudes</h2>
-      <p>Aquí irá la tabla y formulario de solicitudes.</p>
+
+      <!-- Formulario de Solicitudes -->
+      <div class="card-form">
+        <h3 id="form-solicitud-title">Guardar / Editar Solicitud</h3>
+        <form id="form-solicitud">
+          <input type="hidden" id="solicitud-id">
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="select-cliente">Cliente</label>
+              <select id="select-cliente" required>
+                <option value="">Seleccione un cliente...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="select-tipo-financiamiento">Tipo de Financiamiento</label>
+              <select id="select-tipo-financiamiento" required>
+                <option value="">Seleccione un tipo...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="monto">Monto</label>
+              <input type="number" id="monto" step="0.01" required placeholder="Ej. 5000.00">
+            </div>
+
+            <div class="form-group">
+              <label for="fecha_solicitud">Fecha de Solicitud</label>
+              <input type="date" id="fecha_solicitud" required readonly>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" id="btn-limpiar-solicitud">Limpiar</button>
+            <button type="submit" class="btn-primary" id="btn-guardar-solicitud">Crear Solicitud</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Listado de Solicitudes -->
+      <div class="table-container">
+        <h3>Listado de Solicitudes</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Tipo de Financiamiento</th>
+              <th>Monto</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-solicitudes-body">
+            <!-- Cargado por JS -->
+          </tbody>
+        </table>
+      </div>
     </section>
+
+    <!--================================  SECCION DE CLIENTES -================================ -->
 
     <section id="gestiones" class="content-section">
       <h2>Módulo de Gestiones</h2>
